@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "title": "Configure GitHub Repository",
+    "status": "In Progress",
+    "assigned_to": "Student A",
+    "updated_at": "2026-06-17 11:43"
+  },
+  {
+    "id": 2,
+    "title": "Write Dockerfile (Multi-stage)",
+    "status": "Pending",
+    "assigned_to": "Student B",
+    "updated_at": "2026-06-17 11:42"
+  },
+  {
+    "id": 3,
+    "title": "Set up CI/CD Workflow with GitHub Actions",
+    "status": "Pending",
+    "assigned_to": "Student C",
+    "updated_at": "2026-06-17 11:43"
+  },
+  {
+    "id": 4,
+    "title": "Deploy to Staging Environment (Minikube/VM)",
+    "status": "In Progress",
+    "assigned_to": "Student A",
+    "updated_at": "2026-06-17 11:43"
+  },
+  {
+    "id": 5,
+    "title": "Configure Prometheus and Grafana Monitoring",
+    "status": "Pending",
+    "assigned_to": "Student D",
+    "updated_at": "2026-06-04 10:45"
+  },
+  {
+    "id": 6,
+    "title": "דגכדגכדגכ",
+    "status": "In Progress",
+    "assigned_to": "דגכדגכ",
+    "updated_at": "2026-06-17 11:42"
+  }
+]
