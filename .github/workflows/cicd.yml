@@ -95,14 +95,16 @@ jobs:
 
       - name: Deploy Backend to GKE
         run: |
-          # עדכון ה-image ב-deployment
-          kubectl set image deployment/kanban-backend \
-            backend=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/kanban-backend:${{ github.sha }} \
-            --namespace=default || \
+          # פריסה או עדכון
           kubectl apply -f k8s/
 
-          # המתנה לסיום הפריסה
-          kubectl rollout status deployment/kanban-backend --namespace=default --timeout=300s
+          # עדכון ה-image לגרסה הנוכחית
+          kubectl set image deployment/kanban-backend \
+            backend=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/kanban-backend:${{ github.sha }} \
+            --namespace=default
+
+          # המתנה לסיום הפריסה — 10 דקות לGKE Autopilot
+          kubectl rollout status deployment/kanban-backend --namespace=default --timeout=600s
 
       - name: Get Backend Internal URL
         id: backend-url
