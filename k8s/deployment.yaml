@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kanban-backend
+  namespace: default
+  labels:
+    app: kanban-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kanban-backend
+  template:
+    metadata:
+      labels:
+        app: kanban-backend
+    spec:
+      containers:
+        - name: backend
+          image: us-central1-docker.pkg.dev/project-d24488cc-167d-4a0a-8b2/kanban-repo/kanban-backend:latest
+          ports:
+            - containerPort: 5000
+          env:
+            - name: DB_PATH
+              value: /app/database/db.json
+          volumeMounts:
+            - name: db-storage
+              mountPath: /app/database
+          # בדיקת תקינות
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: db-storage
+          persistentVolumeClaim:
+            claimName: kanban-db-pvc
