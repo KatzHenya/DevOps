@@ -13,7 +13,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir \
     --trusted-host pypi.org \
     --trusted-host files.pythonhosted.org \
-    --user -r requirements.txt
+    -r requirements.txt
 
 
 # Stage 2: Runtime
@@ -26,11 +26,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy installed packages from builder
-COPY --from=builder /root/.local /root/.local
+# Copy installed packages from builder (system-wide)
+COPY --from=builder /usr/local/lib/python3.12 /usr/local/lib/python3.12
+COPY --from=builder /usr/local/bin /usr/local/bin
+
 COPY app.py .
 
-ENV PATH=/root/.local/bin:$PATH
 ENV PYTHONUNBUFFERED=1
 ENV DB_PATH=/app/database/db.json
 
