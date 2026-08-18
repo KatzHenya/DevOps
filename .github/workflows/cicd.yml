@@ -86,7 +86,8 @@ jobs:
             --command="
               sudo mkdir -p /app/database &&
               sudo chown -R ubuntu:ubuntu /app &&
-              gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet &&
+              ACCESS_TOKEN=\$(curl -s -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token | python3 -c 'import sys,json; print(json.load(sys.stdin)[\"access_token\"])') &&
+              echo \"\$ACCESS_TOKEN\" | docker login -u oauth2accesstoken --password-stdin https://${{ env.REGION }}-docker.pkg.dev &&
               docker pull ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/${{ env.IMAGE }}:latest &&
               docker stop kanban-app 2>/dev/null || true &&
               docker rm kanban-app 2>/dev/null || true &&
