@@ -84,11 +84,12 @@ jobs:
             --zone=${{ env.VM_ZONE }} \
             --quiet \
             --command="
+              sudo mkdir -p /app/database &&
+              sudo chown -R ubuntu:ubuntu /app &&
               gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet &&
               docker pull ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/${{ env.IMAGE }}:latest &&
               docker stop kanban-app 2>/dev/null || true &&
               docker rm kanban-app 2>/dev/null || true &&
-              mkdir -p /app/database &&
               docker run -d \
                 --name kanban-app \
                 --restart unless-stopped \
