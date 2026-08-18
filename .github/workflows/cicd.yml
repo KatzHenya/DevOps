@@ -1,0 +1,98 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  PROJECT_ID: project-d24488cc-167d-4a0a-8b2
+  REGION: us-central1
+  REPO: kanban-repo
+  IMAGE: kanban-app
+  VM_NAME: kanban-vm
+  VM_ZONE: us-central1-a
+  VM_USER: ubuntu
+
+jobs:
+  # ─────────────────────────────────────────────
+  # שלב CI: בדיקות + בנייה + דחיפה ל-Registry
+  # ─────────────────────────────────────────────
+  ci:
+    name: CI - Lint, Build & Push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies for linting
+        run: pip install flake8
+
+      - name: Lint with Flake8
+        run: flake8 app.py --max-line-length=120
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/${{ env.IMAGE }}:${{ github.sha }} .
+          docker tag ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/${{ env.IMAGE }}:${{ github.sha }} \
+                     ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/${{ env.IMAGE }}:latest
+
+      - name: Push Docker Image to Artifact Registry
+        run: |
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/${{ env.IMAGE }}:${{ github.sha }}
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/${{ env.IMAGE }}:latest
+
+  # ─────────────────────────────────────────────
+  # שלב CD: פריסה ל-VM (רק על main אחרי CI)
+  # ─────────────────────────────────────────────
+  cd:
+    name: CD - Deploy to VM
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy to VM via gcloud compute ssh
+        run: |
+          gcloud compute ssh ${{ env.VM_USER }}@${{ env.VM_NAME }} \
+            --zone=${{ env.VM_ZONE }} \
+            --quiet \
+            --command="
+              gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet &&
+              docker pull ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/${{ env.IMAGE }}:latest &&
+              docker stop kanban-app 2>/dev/null || true &&
+              docker rm kanban-app 2>/dev/null || true &&
+              mkdir -p /app/database &&
+              docker run -d \
+                --name kanban-app \
+                --restart unless-stopped \
+                -p 5000:5000 \
+                -v /app/database:/app/database \
+                ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/${{ env.IMAGE }}:latest
+            "
